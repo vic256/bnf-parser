@@ -1,7 +1,7 @@
 import os
 
 type BnfValue = Ref | string | None
-type BnfToken = Bloc | BnfValue
+type BnfToken = Bloc | Ref | string | None
 
 enum Op {
 	op_default
@@ -60,9 +60,10 @@ fn main() {
 		mut bnf_expr := BnfExpr{} 
 		bnf_expr.key = key
 
-		mut current_bnf_bloc := Bloc{}
-		mut current_default_bnf_bloc := Bloc{[], Op.op_default}
+		mut current_bnf_bloc := Bloc{} // Parent bloc 
 		mut current_bnf_value := BnfValue(None{})
+
+		mut default_bnf_bloc := create_default_bnf_bloc()
 
 		mut entry := ''
 		mut i := 0
@@ -77,23 +78,23 @@ fn main() {
 					if current_bnf_bloc.operator == Op.op_default { 
 						current_bnf_bloc.operator = Op.op_and 
 					}
-					if !(current_bnf_value is None) {
-						current_bnf_bloc.tokens << create_bnf_bloc(current_bnf_value)
-						current_bnf_value = BnfValue(None{})
+					if !(default_bnf_bloc.tokens[0] is None) {
+						current_bnf_bloc.tokens << default_bnf_bloc
+						default_bnf_bloc = create_default_bnf_bloc()
 						entry = ''
-					}
-					if (current_bnf_value is None && entry != '') {
-						current_bnf_bloc.tokens << create_bnf_bloc(BnfValue(Ref{entry}))
+					} else if entry != '' {
+						default_bnf_bloc.tokens[0] = Ref{entry}
+						current_bnf_bloc.tokens << default_bnf_bloc
+						default_bnf_bloc = create_default_bnf_bloc()
 						entry = ''
 					}
 				}
 			} else if token == `'` {
-				if current_bnf_value.type_name() == 'None' {
-					current_bnf_value = BnfValue('')
+				if default_bnf_bloc.tokens[0] is None {
+					default_bnf_bloc.tokens[0] = ''
 					entry = ''
-				}
-				if current_bnf_value.type_name() == 'string' {
-					current_bnf_value = BnfValue(entry)
+				} else if default_bnf_bloc.tokens[0] is string {
+					default_bnf_bloc.tokens[0] = entry
 					entry = ''
 				}
 				i++
@@ -101,14 +102,17 @@ fn main() {
 				if current_bnf_bloc.operator == Op.op_default { current_bnf_bloc.operator = Op.op_or }
 				i++
 			} else if token == `*` {
-				if current_bnf_bloc.operator == Op.op_default { current_bnf_bloc.operator = Op.op_multiply }
+				if default_bnf_bloc.operator == Op.op_default { default_bnf_bloc.operator = Op.op_multiply }
 				i++
 			} else if token == `\n` {
-				if !(current_bnf_value is None) {
-					current_bnf_bloc.tokens << create_bnf_bloc(current_bnf_value)
-				}
-				if (current_bnf_value is None) && entry != '' {
-					current_bnf_bloc.tokens << create_bnf_bloc(BnfValue(Ref{entry}))
+				if !(default_bnf_bloc.tokens[0] is None) {
+					current_bnf_bloc.tokens << default_bnf_bloc
+					default_bnf_bloc = create_default_bnf_bloc()
+				} else if entry != '' {
+					default_bnf_bloc.tokens[0] = Ref{entry}
+					current_bnf_bloc.tokens << default_bnf_bloc
+					default_bnf_bloc = create_default_bnf_bloc()
+					entry = ''
 				}
 				i++
 			} else {
@@ -120,6 +124,6 @@ fn main() {
 	}
 }
 
-fn create_bnf_bloc(bnf_value BnfValue) Bloc {
-	return Bloc{[bnf_value], Op.op_default}
+fn create_default_bnf_bloc() Bloc {
+	return Bloc{[None{}], Op.op_default}
 }

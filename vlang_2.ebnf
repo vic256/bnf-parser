@@ -3,7 +3,8 @@
 //VarDefinition ::= VarModifiers? identifier
 //VarModifiers ::= VarModifier*
 VarModifier ::= 'mut' | 'shared' | 'volatile' | 'static'
-VarTest ::= 'hello' 'world'
+Test ::= VarModifier* | 'bouh'
+AnotherTest ::= 'mf'
 //ExpressionList ::= ExpressionWithRecover (',' (ExpressionWithRecover | &')'))*
 // Expressionlist ::= ExpressionWithRecover
 // ExpressionWithRecover ::= Expression !':' 
